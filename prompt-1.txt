@@ -1,3 +1,11 @@
+Use this videos principles:
+
+https://youtu.be/sSpULGNHyoI?si=rhzt6Dq9WiQyVg0v
+
+And write an lms 
+
+---------------------------------------------------------------------------------------------------------------
+
 Nice — I’ll treat the video’s project-first / vertical-slice approach as the guiding principle and give you a practical, implementable plan to build an internal LMS from the ground up. I’ll decompose the work into independent vertical slices you can deliver incrementally, include APIs, DB model, ADRs, CI/CD, testing, deployment, security, monitoring, and a recommended tech stack (lean and enterprise options). At the end I’ll list concrete next steps and offer to generate starter code for the stack you pick.
 
 Big idea (in one line)
