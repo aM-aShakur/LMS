@@ -123,4 +123,9 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'providers' => [
+        // Laravel Providers...
+        App\Modules\Core\User\UserServiceProvider::class,
+    ]
+
 ];
