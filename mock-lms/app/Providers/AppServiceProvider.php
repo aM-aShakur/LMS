@@ -7,83 +7,46 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register application services.
-     */
     public function register(): void
     {
-        $this->loadModuleConfigs();
+        // Keep lightweight; configs can be merged by each ModuleServiceProvider.
     }
 
-    /**
-     * Bootstrap application services.
-     */
     public function boot(): void
     {
         $this->loadModuleRoutes();
         $this->loadModuleMigrations();
     }
 
-    /**
-     * Auto-load config files from each module.
-     */
-    protected function loadModuleConfigs(): void
+    protected function eachModule(callable $cb): void
     {
-        $modulesPath = app_path('Modules');
+        $modulesBase = app_path('Modules');
+        if (!File::exists($modulesBase)) return;
 
-        if (File::exists($modulesPath)) {
-            foreach (File::directories($modulesPath) as $module) {
-                $configPath = $module . '/config';
-                if (File::exists($configPath)) {
-                    foreach (File::files($configPath) as $file) {
-                        $this->mergeConfigFrom($file->getPathname(), pathinfo($file, PATHINFO_FILENAME));
-                    }
-                }
+        // Traverse top-level and one level deeper (Core/User, Learning/Course, etc.)
+        foreach (File::directories($modulesBase) as $ns) {
+            $cb($ns);
+            foreach (File::directories($ns) as $module) {
+                $cb($module);
             }
         }
     }
 
-    /**
-     * Auto-load routes from each module.
-     */
     protected function loadModuleRoutes(): void
     {
-        $modulesPath = app_path('Modules');
-
-        if (File::exists($modulesPath)) {
-            foreach (File::allFiles($modulesPath) as $file) {
-                if ($file->getFilename() === 'web.php') {
-                    $this->loadRoutesFrom($file->getPathname());
-                }
-                if ($file->getFilename() === 'api.php') {
-                    $this->loadRoutesFrom($file->getPathname());
-                }
-            }
-        }
+        $this->eachModule(function (string $module) {
+            $web = $module . '/routes/web.php';
+            $api = $module . '/routes/api.php';
+            if (File::exists($web)) $this->loadRoutesFrom($web);
+            if (File::exists($api)) $this->loadRoutesFrom($api);
+        });
     }
 
-    /**
-     * Auto-load migrations from each module.
-     */
     protected function loadModuleMigrations(): void
     {
-        $modulesPath = app_path('Modules');
-
-        if (File::exists($modulesPath)) {
-            foreach (File::directories($modulesPath) as $module) {
-                $migrationsPath = $module . '/database/migrations';
-                if (File::exists($migrationsPath)) {
-                    $this->loadMigrationsFrom($migrationsPath);
-                }
-
-                // Recursively check submodules (e.g., Learning/Course)
-                foreach (File::directories($module) as $subModule) {
-                    $subMigrations = $subModule . '/database/migrations';
-                    if (File::exists($subMigrations)) {
-                        $this->loadMigrationsFrom($subMigrations);
-                    }
-                }
-            }
-        }
+        $this->eachModule(function (string $module) {
+            $migrations = $module . '/database/migrations';
+            if (File::exists($migrations)) $this->loadMigrationsFrom($migrations);
+        });
     }
 }

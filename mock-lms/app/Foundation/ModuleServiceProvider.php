@@ -1,56 +1,57 @@
 <?php
 
-namespace App\Foundation\Providers;
+namespace App\Foundation;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 
 abstract class ModuleServiceProvider extends ServiceProvider
 {
+    protected string $moduleName; // e.g. 'Core/User'
     protected string $modulePath;
+
+    public function register(): void
+    {
+        $this->modulePath = app_path('Modules/' . trim($this->moduleName, '/'));
+    }
 
     public function boot(): void
     {
         $this->loadModuleConfig();
         $this->loadModuleRoutes();
         $this->loadModuleMigrations();
-        $this->bootModuleServices();
+        $this->loadModuleViews();
     }
-
-    public function register(): void
-    {
-        $this->registerModuleServices();
-    }
-
-    protected function bootModuleServices(): void {}
-    protected function registerModuleServices(): void {}
 
     protected function loadModuleConfig(): void
     {
-        $configPath = $this->modulePath . '/config';
-        if (File::exists($configPath)) {
-            foreach (File::files($configPath) as $file) {
-                $this->mergeConfigFrom(
-                    $file->getPathname(),
-                    pathinfo($file, PATHINFO_FILENAME)
-                );
-            }
+        $configDir = $this->modulePath . '/config';
+        if (!File::exists($configDir)) return;
+
+        foreach (File::files($configDir) as $file) {
+            if ($file->getExtension() !== 'php') continue;
+            $key = $file->getFilenameWithoutExtension();
+            $this->mergeConfigFrom($file->getPathname(), $key);
         }
     }
 
     protected function loadModuleRoutes(): void
     {
-        $webRoutes = $this->modulePath . '/routes/web.php';
-        $apiRoutes = $this->modulePath . '/routes/api.php';
-        if (File::exists($webRoutes)) $this->loadRoutesFrom($webRoutes);
-        if (File::exists($apiRoutes)) $this->loadRoutesFrom($apiRoutes);
+        $web = $this->modulePath . '/routes/web.php';
+        $api = $this->modulePath . '/routes/api.php';
+        if (File::exists($web)) $this->loadRoutesFrom($web);
+        if (File::exists($api)) $this->loadRoutesFrom($api);
     }
 
     protected function loadModuleMigrations(): void
     {
-        $migrationPath = $this->modulePath . '/database/migrations';
-        if (File::exists($migrationPath)) {
-            $this->loadMigrationsFrom($migrationPath);
-        }
+        $path = $this->modulePath . '/database/migrations';
+        if (File::exists($path)) $this->loadMigrationsFrom($path);
+    }
+
+    protected function loadModuleViews(): void
+    {
+        $path = $this->modulePath . '/resources/views';
+        if (File::exists($path)) $this->loadViewsFrom($path, str_replace('/', '_', $this->moduleName));
     }
 }
